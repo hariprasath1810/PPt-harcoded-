@@ -1,649 +1,902 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  FileText,
-  Image as IconImage,
-  Workflow,
-  Database,
-  Upload,
-  Loader2,
-  StopCircle,
-  Bot,
-  Sparkles,
-  Mic,
-  FileVideo,
-  X,
-} from 'lucide-react';
-import {
-  BarChart as RechartsBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LabelList,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  LineChart as ReLineChart,
-  Line,
-  ResponsiveContainer,
-} from 'recharts';
+'use client';
 
-// Local styles
-const slideContainer: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  background: 'linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%)',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+// --- Style Definitions ---
+const styles: { [key: string]: React.CSSProperties } = {
+  slideContainer: {
+    width: '100%',
+    height: '100%',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateRows: 'repeat(2, 1fr)',
+    gap: '20px',
+    padding: '20px',
+    boxSizing: 'border-box',
+    backgroundColor: '#030712', // A dark, neutral background
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  card: {
+    backgroundColor: 'rgba(31, 41, 55, 0.5)', // bg-gray-800 with opacity
+    padding: '24px',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(8px)',
+    color: '#E5E7EB',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+    overflow: 'auto',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  cardTitle: {
+    fontSize: '1.1rem',
+    fontWeight: '600',
+    color: 'white',
+  },
+  cardParagraph: {
+    color: '#9CA3AF',
+    marginBottom: '24px',
+    fontSize: '0.9rem',
+    lineHeight: 1.6,
+  },
+  button: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontWeight: '600',
+    color: 'white',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s, opacity 0.2s',
+    border: 'none',
+    outline: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+  },
+  input: {
+    flexGrow: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    border: '1px solid #4B5563',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    color: 'white',
+    fontSize: '0.9rem',
+  },
+  icon: {
+    width: '24px',
+    height: '24px',
+  },
+  smallIcon: {
+    width: '16px',
+    height: '16px',
+  },
+  loadingContainer: {
+    marginTop: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    color: '#D1D5DB',
+  },
+  outputContainer: {
+    marginTop: '24px',
+    padding: '16px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: '8px',
+  },
+  outputTitle: {
+    fontWeight: 'bold',
+    fontSize: '1rem',
+    marginBottom: '8px',
+    color: '#F3F4F6',
+  },
+  outputText: {
+    color: '#D1D5DB',
+    lineHeight: 1.6,
+    fontSize: '0.9rem',
+    whiteSpace: 'pre-wrap',
+  },
+
+  // --- 2x3 image card grid (existing Image card) ---
+  imageGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+  },
+  imageCard: {
+    position: 'relative',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    border: '1px solid rgba(255,255,255,0.08)',
+  },
+  imageWrap: {
+    position: 'relative',
+    width: '100%',
+    paddingBottom: '66%', // ~3:2 aspect ratio
+    overflow: 'hidden',
+  },
+  imageTag: {
+    position: 'absolute',
+    bottom: '8px',
+    left: '8px',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: 'white',
+    fontSize: '0.75rem',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    border: '1px solid rgba(255,255,255,0.12)',
+  },
+
+  // --- NEW: chart grid + chart card styles for Talk to Your Data ---
+  chartGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+    marginTop: '12px',
+  },
+  chartCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+    padding: '12px',
+  },
+  chartTitle: {
+    fontSize: '0.9rem',
+    color: '#E5E7EB',
+    marginBottom: '8px',
+    fontWeight: 600,
+  },
+  svgWrap: {
+    width: '100%',
+    height: '160px',
+  },
 };
 
-const fullBleedContainer: React.CSSProperties = {
-  position: 'absolute',
-  top: 0,
-  right: 0,
-  bottom: 0,
-  left: 0,
-  overflow: 'auto',
-  padding: '40px 20px',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-};
-
-// ----------------------------------
-// Small helpers
-// ----------------------------------
-const useTypewriter = (fullText: string, speed = 18) => {
-  const [text, setText] = useState('');
-  const [running, setRunning] = useState(false);
-  const ref = useRef<number | null>(null);
-
-  const start = () => {
-    if (!fullText) return;
-    setText('');
-    setRunning(true);
-    let i = 0;
-    // @ts-ignore
-    ref.current = setInterval(() => {
-      setText(fullText.slice(0, i));
-      i++;
-      if (i > fullText.length) {
-        clearInterval(ref.current!);
-        setRunning(false);
-      }
-    }, speed);
-  };
-
-  const stop = () => {
-    if (ref.current) clearInterval(ref.current);
-    setRunning(false);
-  };
-
-  useEffect(() => () => ref.current && clearInterval(ref.current), []);
-  return { text, running, start, stop };
-};
-
-// ----------------------------------
-// Shared UI
-// ----------------------------------
-const BeautifulButton = ({ onClick, children, className, icon, disabled = false }: any) => (
-  <motion.button
-    onClick={onClick}
-    disabled={disabled}
-    className={`px-5 py-2.5 rounded-full text-white font-semibold shadow-lg flex items-center gap-2 bg-gradient-to-br ${className} disabled:opacity-50 disabled:cursor-not-allowed`}
-    whileHover={{ scale: disabled ? 1 : 1.04 }}
-    whileTap={{ scale: disabled ? 1 : 0.97 }}
-  >
-    {icon}
-    {children}
-  </motion.button>
+// --- Helper: Icon Components ---
+const IconLoader = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ ...style, animation: 'spin 1s linear infinite' }}>
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+const IconUpload = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
+const IconFileText = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+const IconImage = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+const IconSparkles = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M12 3L9.5 8.5 4 10l5.5 5.5L8 21l4-3 4 3-1.5-5.5L22 10l-5.5-1.5z" />
+  </svg>
+);
+const IconBarChart = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <line x1="12" y1="20" x2="12" y2="10" />
+    <line x1="18" y1="20" x2="18" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="16" />
+  </svg>
+);
+const IconHelpCircle = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const IconMic = ({ style }: { style?: React.CSSProperties }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8" y1="23" x2="16" y2="23" />
+  </svg>
 );
 
-// — Fix: Close button “dancing” -> subtle hover only
-const CloseButton = ({ onClick }: { onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className="absolute top-6 right-6 z-50 rounded-full p-2 bg-black/35 text-white shadow transition transform hover:scale-[1.06] hover:bg-black/45 focus:outline-none focus:ring-2 focus:ring-white/70"
-    aria-label="Close"
-  >
-    <X size={22} />
-  </button>
-);
+// --- Card Components ---
 
-const PanelShell: React.FC<{ title: React.ReactNode; subtitle?: React.ReactNode; onClose: () => void }>
-  = ({ title, subtitle, onClose, children }) => (
-  <div style={fullBleedContainer} className="backdrop-blur-[1px]">
-    <CloseButton onClick={onClose} />
-    <div className="w-full h-full flex flex-col p-8 gap-6">
-      <div className="flex flex-col items-center gap-2">
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 text-center">{title}</h2>
-        {subtitle && <p className="text-gray-600 text-center max-w-3xl">{subtitle}</p>}
-      </div>
-      <div className="flex-1 min-h-0 w-full">{children}</div>
-    </div>
-  </div>
-);
-
-// ----------------------------------
-// Document Summarization (auto-start after upload)
-// ----------------------------------
-function DocumentSummarization({ onClose }: { onClose: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const fullSummary =
-    'This document discusses the importance of integrating AI systems into enterprise workflows. It emphasizes scalability, predictive analytics, and automation as key drivers of business transformation. Additionally, it highlights the role of generative AI in enhancing productivity and innovation.';
-  const { text, running, start, stop } = useTypewriter(fullSummary, 18);
-
-  const onFile = (f: File | null) => {
-    setFile(f);
-    if (f) {
-      // Auto-start typewriter after upload
-      setTimeout(() => start(), 250);
+const HARDCODED_SUMMARY =
+  'The document outlines a strategic initiative to leverage AI across various business units. Key focus areas include predictive analytics for market trends, natural language processing for customer support automation, and computer vision for quality control in manufacturing. The projected ROI is an 18% increase in operational efficiency within the first two years.';
+function SummarizerCard() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [fileName, setFileName] = useState('');
+  const handleSummarize = async () => {
+    if (!fileName) {
+      alert('Please upload a dummy PDF first.');
+      return;
     }
+    setIsLoading(true);
+    setSummary('');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    setSummary(HARDCODED_SUMMARY);
+    setIsLoading(false);
   };
-
   return (
-    <PanelShell onClose={onClose} title={<><FileText className="inline mr-3" />Document Summarization</>}>
-      <div className="w-full h-full flex flex-col items-center gap-5">
-        <label className="cursor-pointer">
-          <div className="px-6 py-3 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold shadow flex items-center gap-2">
-            <Upload size={18} /> {file ? 'Upload Another' : 'Upload Document'}
-          </div>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <IconFileText style={{ ...styles.icon, color: '#60A5FA' }} />
+        <h2 style={styles.cardTitle}>Document Summarization</h2>
+      </div>
+      <p style={styles.cardParagraph}>Upload any PDF. The system will process it and show a pre-defined summary.</p>
+      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+        <label style={{ ...styles.button, flexGrow: 1, backgroundColor: '#4B5563' }}>
+          <IconUpload style={styles.smallIcon} />
+          {fileName || 'Upload Dummy PDF'}
           <input
             type="file"
-            accept=".pdf,.txt,.md,.doc,.docx"
-            className="hidden"
-            onChange={(e) => onFile(e.target.files?.[0] || null)}
+            style={{ display: 'none' }}
+            accept=".pdf"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
           />
         </label>
-
-        {file && (
-          <p className="text-xs text-gray-600">Selected: <span className="font-medium">{file.name}</span></p>
-        )}
-
-        <div className="h-12 flex items-center gap-3">
-          {!running && file && !text && (
-            <BeautifulButton onClick={start} icon={<Bot />} className="from-green-500 to-green-600">Summarize</BeautifulButton>
-          )}
-          {running && (
-            <BeautifulButton onClick={stop} icon={<StopCircle />} className="from-red-500 to-red-600">Stop</BeautifulButton>
-          )}
-          {running && <Loader2 className="animate-spin w-6 h-6 text-blue-500" />}
-        </div>
-
-        <AnimatePresence>
-          {text && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="w-full max-w-3xl bg-white rounded-xl shadow p-6 overflow-auto border border-black/5"
-              style={{ maxHeight: '55vh' }}
-            >
-              <h3 className="text-lg font-semibold text-blue-700 mb-2">AI Summary</h3>
-              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{text}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </PanelShell>
-  );
-}
-
-// ----------------------------------
-// Image Generation (prompt -> 2x3 grid)
-// ----------------------------------
-function ImageGeneration({ onClose }: { onClose: () => void }) {
-  const [prompt, setPrompt] = useState('');
-  const [generated, setGenerated] = useState(false);
-  const images = [
-    { name: 'Midjourney', src: 'https://images.pexels.com/photos/1632790/pexels-photo-1632790.jpeg' },
-    { name: 'Stable Diffusion', src: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg' },
-    { name: 'DALL·E 3', src: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg' },
-    { name: 'Imagen', src: 'https://images.pexels.com/photos/1528640/pexels-photo-1528640.jpeg' },
-    { name: 'Amazon Nova', src: 'https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg' },
-    { name: 'Llama (mock)', src: 'https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg' },
-  ];
-
-  const onGenerate = () => {
-    if (!prompt.trim()) return;
-    setGenerated(true);
-  };
-
-  return (
-    <PanelShell
-      onClose={onClose}
-      title={<><IconImage className="inline mr-3" />Image Generation</>}
-      subtitle={<span>Enter a prompt, then view a 2×3 grid (250px tiles) with model tags.</span>}
-    >
-      <div className="w-full h-full flex flex-col gap-4">
-        <div className="flex items-center justify-center gap-3">
-          <input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the scene..."
-            className="w-full max-w-xl px-4 py-2 rounded-full border border-black/10 shadow focus:outline-none"
-          />
-          <BeautifulButton onClick={onGenerate} disabled={!prompt.trim()} icon={<Sparkles />} className="from-purple-500 to-pink-500">Generate</BeautifulButton>
-        </div>
-
-        {generated && (
-          <div className="w-full flex-1 overflow-auto">
-            <div className="grid grid-cols-3 grid-rows-2 gap-4 w-full">
-              {images.map((img, i) => (
-                <figure key={i} className="relative w-full h-[250px] overflow-hidden rounded-lg shadow bg-white">
-                  <img src={img.src} alt={img.name} className="w-full h-full object-cover" />
-                  <figcaption className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white px-3 py-2 text-sm font-semibold">{img.name}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </PanelShell>
-  );
-}
-
-// ----------------------------------
-// Talk To Your Data (upload -> random charts -> prompt -> typewritten answer)
-// ----------------------------------
-function TalkToData({ onClose }: { onClose: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [chartsReady, setChartsReady] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const summaryText =
-    'Across categories, the bar chart shows an upward bias with one outlier; the line indicates seasonal lift around March; and the pie suggests no single segment dominates. A combined strategy should focus on sustaining peaks while addressing weak cohorts.';
-  const { text, running, start, stop } = useTypewriter(summaryText, 16);
-
-  const makeRandom = (n: number, base = 50) => Array.from({ length: n }, (_, i) => ({
-    name: String.fromCharCode(65 + i),
-    value: Math.max(5, Math.round(base + (Math.random() - 0.5) * base)),
-  }));
-
-  const [barData, setBarData] = useState(makeRandom(6, 40));
-  const [pieData, setPieData] = useState(makeRandom(5, 20).map((d, i) => ({ name: `Group ${i + 1}`, value: d.value })));
-  const [lineData, setLineData] = useState(
-    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((m) => ({ name: m, value: Math.round(20 + Math.random() * 60) }))
-  );
-
-  const onUpload = (f: File | null) => {
-    setFile(f);
-    if (f) {
-      // Regenerate random data for fun after each upload
-      setBarData(makeRandom(6, 50));
-      setPieData(makeRandom(5, 25).map((d, i) => ({ name: `Group ${i + 1}`, value: d.value })));
-      setLineData(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((m) => ({ name: m, value: Math.round(20 + Math.random() * 70) })));
-      setChartsReady(true);
-      // reset any previous explanation
-      stop();
-    }
-  };
-
-  const onExplain = () => {
-    if (!prompt.trim()) return;
-    start();
-  };
-
-  return (
-    <PanelShell onClose={onClose} title={<><Database className="inline mr-3" />Talk To Your Data</>}>
-      <div className="w-full h-full flex flex-col gap-4">
-        <div className="flex items-center justify-center gap-3">
-          <label className="cursor-pointer">
-            <div className="px-5 py-2.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-semibold shadow flex items-center gap-2">
-              <Upload size={18} /> {file ? 'Upload Another' : 'Upload CSV / Excel'}
-            </div>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={(e) => onUpload(e.target.files?.[0] || null)}
-            />
-          </label>
-          <BeautifulButton onClick={() => setChartsReady(true)} disabled={!file} icon={<Sparkles />} className="from-indigo-500 to-purple-600">Generate Charts</BeautifulButton>
-        </div>
-
-        {/* Charts */}
-        {chartsReady && (
-          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg shadow p-3 border border-black/5">
-              <ResponsiveContainer width="100%" height={240}>
-                <RechartsBarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                  <XAxis dataKey="name" stroke="#4b5563" />
-                  <YAxis stroke="#4b5563" />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#10b981">
-                    <LabelList dataKey="value" position="top" fill="#111827" />
-                  </Bar>
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-white rounded-lg shadow p-3 border border-black/5">
-              <ResponsiveContainer width="100%" height={240}>
-                <RePieChart>
-                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} label>
-                    {pieData.map((_, idx) => (
-                      <Cell key={idx} fill={["#10b981", "#34d399", "#a7f3d0", "#60a5fa", "#fde68a"][idx % 5]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </RePieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-white rounded-lg shadow p-3 border border-black/5">
-              <ResponsiveContainer width="100%" height={240}>
-                <ReLineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                  <XAxis dataKey="name" stroke="#4b5563" />
-                  <YAxis stroke="#4b5563" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#34d399" strokeWidth={2} />
-                </ReLineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* Prompt -> explanation */}
-        {chartsReady && (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-3 w-full max-w-3xl">
-              <input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ask about the charts..."
-                className="flex-1 px-4 py-2 rounded-full border border-black/10 shadow focus:outline-none"
-              />
-              <BeautifulButton onClick={onExplain} disabled={!prompt.trim()} icon={<Bot />} className="from-amber-500 to-orange-500">Explain</BeautifulButton>
-              {running && <Loader2 className="animate-spin w-5 h-5 text-amber-600" />}
-            </div>
-            <AnimatePresence>
-              {text && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="w-full max-w-3xl bg-white rounded-xl shadow p-5 border border-black/5"
-                >
-                  <h4 className="text-base font-semibold text-amber-700 mb-1">Analysis</h4>
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{text}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
-    </PanelShell>
-  );
-}
-
-// ----------------------------------
-// Multimodal (unchanged placeholder)
-// ----------------------------------
-function Multimodal({ onClose }: { onClose: () => void }) {
-  const [mode, setMode] = useState<'idle' | 'recording' | 'generating'>('idle');
-  const [text, setText] = useState('');
-
-  return (
-    <PanelShell onClose={onClose} title={<><Workflow className="inline mr-3" />Multimodal Interactions</>} subtitle="Voice → Text/Image and video → text placeholder">
-      <div className="w-full h-full flex flex-col items-center gap-4">
-        <div className="flex flex-wrap justify-center items-center gap-3">
-          <BeautifulButton onClick={() => setMode(mode === 'recording' ? 'idle' : 'recording')} icon={<Mic size={18} />} className={mode === 'recording' ? 'from-red-500 to-red-600' : 'from-indigo-500 to-purple-600'}>
-            {mode === 'recording' ? 'Stop Recording' : 'Voice to Voice'}
-          </BeautifulButton>
-          <BeautifulButton onClick={() => setMode(mode === 'generating' ? 'idle' : 'generating')} icon={<Sparkles size={18} />} className={mode === 'generating' ? 'from-red-500 to-red-600' : 'from-green-500 to-teal-600'}>
-            {mode === 'generating' ? 'Stop' : 'Voice to Text/Image'}
-          </BeautifulButton>
-          <label>
-            <input type="file" className="hidden" accept="video/*" onChange={() => setText('Video processed (placeholder).')} />
-            <BeautifulButton icon={<FileVideo size={18} />} onClick={() => {}} className="from-pink-500 to-rose-600">Video to Text</BeautifulButton>
-          </label>
-        </div>
-
-        <div className="w-full max-w-3xl bg-white rounded-lg shadow p-4 min-h-[120px] overflow-auto" style={{ maxHeight: '55vh' }}>
-          <p className="text-sm text-gray-700">{text || 'Output will appear here...'}</p>
-        </div>
-      </div>
-    </PanelShell>
-  );
-}
-
-// ----------------------------------
-// Main Slide
-// ----------------------------------
-const Slide20 = () => {
-  const [active, setActive] = useState<null | 'doc' | 'img' | 'data' | 'multi'>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
-
-  const features = [
-    { 
-      key: 'doc', 
-      Icon: FileText, 
-      title: 'Document Summarization', 
-      desc: 'Upload and get instant summaries',
-      color: '#4f46e5',
-      bgGradient: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)'
-    },
-    { 
-      key: 'img', 
-      Icon: IconImage, 
-      title: 'Image Generation', 
-      desc: 'Create visuals from text prompts',
-      color: '#7c3aed',
-      bgGradient: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)'
-    },
-    { 
-      key: 'data', 
-      Icon: Database, 
-      title: 'Data Insights', 
-      desc: 'Get answers from your data',
-      color: '#059669',
-      bgGradient: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
-    },
-    { 
-      key: 'multi', 
-      Icon: Workflow, 
-      title: 'Multimodal AI', 
-      desc: 'Combine text, voice, and images',
-      color: '#d97706',
-      bgGradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
-    }
-  ];
-
-  return (
-    <div style={slideContainer}>
-      <div style={fullBleedContainer}>
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          style={{
-            textAlign: 'center',
-            marginBottom: '40px',
-            maxWidth: '800px'
-          }}
+        <button
+          onClick={handleSummarize}
+          disabled={isLoading || !fileName}
+          style={{ ...styles.button, backgroundColor: '#2563EB', opacity: isLoading || !fileName ? 0.5 : 1 }}
         >
-          <h2 style={{
-            fontSize: '2.5rem',
-            fontWeight: 800,
-            color: '#1e293b',
-            marginBottom: '16px',
-            background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            lineHeight: 1.2
-          }}>
-            AI-Powered Features
-          </h2>
-        </motion.div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '24px',
-          width: '100%',
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 20px'
-        }}>
-          {features.map(({ key, Icon, title, desc, color, bgGradient }) => (
-            <motion.div 
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                scale: hovered === key ? 1.03 : 1,
-                boxShadow: hovered === key 
-                  ? '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                  : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-              transition={{ 
-                type: 'spring',
-                stiffness: 300,
-                damping: 20
-              }}
-              onHoverStart={() => setHovered(key)}
-              onHoverEnd={() => setHovered(null)}
-              onClick={() => setActive(key as any)}
-              style={{
-                background: 'white',
-                padding: '28px 24px',
-                borderRadius: '16px',
-                cursor: 'pointer',
-                position: 'relative',
-                border: '1px solid rgba(226, 232, 240, 0.7)'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '4px',
-                background: bgGradient,
-                opacity: hovered === key ? 1 : 0.8,
-                transition: 'opacity 0.3s ease'
-              }} />
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%'
-              }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '20px',
-                  background: bgGradient,
-                  color: color,
-                  transition: 'all 0.3s ease',
-                  transform: hovered === key ? 'rotate(5deg) scale(1.1)' : 'none'
-                }}>
-                  <Icon size={28} />
-                </div>
-                <h3 style={{ 
-                  margin: '0 0 12px 0', 
-                  fontSize: '1.375rem',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  lineHeight: 1.3
-                }}>
-                  {title}
-                </h3>
-                <p style={{ 
-                  margin: 0, 
-                  color: '#64748b',
-                  lineHeight: 1.6,
-                  fontSize: '1rem',
-                  marginBottom: '20px',
-                }}>
-                  {desc}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <AnimatePresence>
-          {active && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 1000,
-                padding: '20px'
-              }}
-              onClick={(e) => e.target === e.currentTarget && setActive(null)}
-            >
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 20, opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '16px',
-                  width: '100%',
-                  maxWidth: '800px',
-                  maxHeight: '90vh',
-                  overflow: 'auto',
-                  position: 'relative',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                }}
-                onClick={e => e.stopPropagation()}
-              >
-                <button 
-                  onClick={() => setActive(null)}
-                  style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: 'rgba(0,0,0,0.05)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#64748b',
-                    transition: 'all 0.2s ease',
-                    zIndex: 10
-                  }}
-                  onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
-                  onMouseOut={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                >
-                  <X size={20} />
-                </button>
-                {active === 'doc' && <DocumentSummarization onClose={() => setActive(null)} />}
-                {active === 'img' && <ImageGeneration onClose={() => setActive(null)} />}
-                {active === 'data' && <TalkToData onClose={() => setActive(null)} />}
-                {active === 'multi' && <Multimodal onClose={() => setActive(null)} />}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          Summarize
+        </button>
       </div>
+      {isLoading && (
+        <div style={styles.loadingContainer}>
+          <IconLoader style={styles.icon} />
+          <span>Processing document...</span>
+        </div>
+      )}
+      {summary && (
+        <div style={styles.outputContainer}>
+          <h3 style={styles.outputTitle}>Generated Summary:</h3>
+          <p style={styles.outputText}>{summary}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- UPDATED: 6 images + 6 model names in a 2x3 grid card view ---
+const HARDCODED_IMAGES = [
+  { model: 'Midjourney', src: 'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&h=350' },
+  { model: 'DALL·E', src: 'https://images.pexels.com/photos/1254140/pexels-photo-1254140.jpeg?auto=compress&cs=tinysrgb&h=350' },
+  { model: 'Stable Diffusion', src: 'https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg?auto=compress&cs=tinysrgb&h=350' },
+  { model: 'Imagen', src: 'https://images.pexels.com/photos/731022/pexels-photo-731022.jpeg?auto=compress&cs=tinysrgb&h=350' },
+  { model: 'Nova', src: 'https://images.pexels.com/photos/733416/pexels-photo-733416.jpeg?auto=compress&cs=tinysrgb&h=350' },
+  { model: 'Llama', src: 'https://images.pexels.com/photos/128817/pexels-photo-128817.jpeg?auto=compress&cs=tinysrgb&h=350' },
+];
+
+function ImageGeneratorCard() {
+  const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showImages, setShowImages] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!prompt) {
+      alert('Please enter a prompt.');
+      return;
+    }
+    setIsLoading(true);
+    setShowImages(false);
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setShowImages(true);
+    setIsLoading(false);
+  };
+
+  return (
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <IconImage style={{ ...styles.icon, color: '#A78BFA' }} />
+        <h2 style={styles.cardTitle}>Image Generation</h2>
+      </div>
+      <p style={styles.cardParagraph}>Enter any prompt to see a showcase of pre-generated images from different models.</p>
+
+      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="e.g., A cat in a spaceship"
+          style={styles.input}
+        />
+        <button
+          onClick={handleGenerate}
+          disabled={isLoading || !prompt}
+          style={{ ...styles.button, backgroundColor: '#7C3AED', opacity: isLoading || !prompt ? 0.5 : 1 }}
+        >
+          <IconSparkles style={styles.smallIcon} />
+          Generate
+        </button>
+      </div>
+
+      {isLoading && (
+        <div style={styles.loadingContainer}>
+          <IconLoader style={styles.icon} />
+          <span>Generating images...</span>
+        </div>
+      )}
+
+      {showImages && (
+        <div style={{ ...styles.outputContainer }}>
+          <div style={styles.imageGrid}>
+            {HARDCODED_IMAGES.map((img) => (
+              <div key={img.model} style={styles.imageCard}>
+                <div style={styles.imageWrap}>
+                  <img
+                    src={img.src}
+                    alt={img.model}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <div style={styles.imageTag}>{img.model}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** -----------------------
+ * TALK TO YOUR DATA (unchanged from your last working version)
+ ------------------------*/
+const HARD_CODED_SUMMARIES = [
+  'Chart review: Category C spiked while A and B held steady. Consider reallocating budget toward C and D next cycle.',
+  'Insight: Week 4 shows a clear acceleration versus prior weeks. A timed promotion likely amplified conversions.',
+  'Observation: The top three segments contribute ~75% of volume. Focus retention tactics there for fastest wins.',
+  'Pattern: Seasonality is visible with periodic peaks. Pull forward inventory and staffing ahead of the next crest.',
+  'Signal: Outliers in Region South skewed the mean upward. Median is a better central tendency for planning.',
+];
+
+type Point = { x: number; y: number };
+type PieSlice = { label: string; value: number };
+
+function rnd(min = 10, max = 100) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function genBarData(n = 6): Point[] {
+  return Array.from({ length: n }, (_, i) => ({ x: i + 1, y: rnd(12, 95) }));
+}
+function genLineData(n = 8): Point[] {
+  let base = rnd(30, 60);
+  return Array.from({ length: n }, (_, i) => {
+    base = Math.max(5, base + rnd(-12, 18));
+    return { x: i + 1, y: base };
+  });
+}
+function genPieData(): PieSlice[] {
+  const labels = ['A', 'B', 'C', 'D', 'E'];
+  const vals = labels.map(() => rnd(5, 30));
+  return labels.map((label, i) => ({ label, value: vals[i] }));
+}
+
+/** Simple inline SVG BAR chart */
+function BarChart({ data }: { data: Point[] }) {
+  const width = 320;
+  const height = 160;
+  const padding = 24;
+  const maxY = Math.max(...data.map((d) => d.y)) || 1;
+  const barW = (width - padding * 2) / data.length - 6;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={styles.svgWrap}>
+      {/* axes */}
+      <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#9CA3AF" strokeWidth="1" />
+      <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#9CA3AF" strokeWidth="1" />
+      {data.map((d, i) => {
+        const x = padding + i * ((width - padding * 2) / data.length) + 3;
+        const h = ((d.y / maxY) * (height - padding * 2)) || 0;
+        const y = height - padding - h;
+        return <rect key={i} x={x} y={y} width={barW} height={h} fill="rgba(96,165,250,0.9)" />;
+      })}
+    </svg>
+  );
+}
+
+/** Simple inline SVG LINE chart */
+function LineChart({ data }: { data: Point[] }) {
+  const width = 320;
+  const height = 160;
+  const padding = 24;
+  const maxY = Math.max(...data.map((d) => d.y)) || 1;
+  const stepX = (width - padding * 2) / (data.length - 1 || 1);
+
+  const points = data
+    .map((d, i) => {
+      const x = padding + i * stepX;
+      const y = height - padding - (d.y / maxY) * (height - padding * 2);
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={styles.svgWrap}>
+      <polyline points={points} fill="none" stroke="rgba(52,211,153,0.95)" strokeWidth="2.5" />
+      {data.map((d, i) => {
+        const x = padding + i * stepX;
+        const y = height - padding - (d.y / maxY) * (height - padding * 2);
+        return <circle key={i} cx={x} cy={y} r="2.5" fill="rgba(52,211,153,0.95)" />;
+      })}
+      <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#9CA3AF" strokeWidth="1" />
+      <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#9CA3AF" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/** Simple inline SVG DONUT chart */
+function DonutChart({ data }: { data: PieSlice[] }) {
+  const r = 60;
+  const cx = 90;
+  const cy = 85;
+  const total = data.reduce((a, b) => a + b.value, 0) || 1;
+  let startAngle = -Math.PI / 2;
+
+  const arcs = data.map((slice, i) => {
+    const angle = (slice.value / total) * Math.PI * 2;
+    const endAngle = startAngle + angle;
+
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+
+    const largeArc = angle > Math.PI ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+    startAngle = endAngle;
+
+    const palette = [
+      'rgba(129,140,248,0.95)',
+      'rgba(244,114,182,0.95)',
+      'rgba(250,204,21,0.95)',
+      'rgba(96,165,250,0.95)',
+      'rgba(34,197,94,0.95)',
+    ];
+    return <path key={i} d={path} fill={palette[i % palette.length]} />;
+  });
+
+  return (
+    <svg viewBox="0 0 180 180" style={styles.svgWrap}>
+      {arcs}
+      <circle cx={cx} cy={cy} r={32} fill="rgba(3,7,18,0.9)" />
+    </svg>
+  );
+}
+
+const HARDCODED_ANALYSIS_FALLBACK =
+  'Quick take: The bar chart highlights a dominant category, the line shows a late upswing, and the donut confirms concentration in a few slices. Consider doubling down where momentum and share overlap.';
+
+function DataAnalysisCard() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const [chartsReady, setChartsReady] = useState(false);
+  const [barData, setBarData] = useState<Point[]>([]);
+  const [lineData, setLineData] = useState<Point[]>([]);
+  const [pieData, setPieData] = useState<PieSlice[]>([]);
+  const [question, setQuestion] = useState('');
+  const [typedSummary, setTypedSummary] = useState('');
+  const [fullSummary, setFullSummary] = useState('');
+
+  const handleGenerateCharts = async () => {
+    if (!fileName) {
+      alert('Please upload a CSV/Excel file first.');
+      return;
+    }
+    setIsLoading(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    setBarData(genBarData());
+    setLineData(genLineData());
+    setPieData(genPieData());
+    setChartsReady(true);
+    setIsLoading(false);
+    setTypedSummary('');
+    setFullSummary('');
+  };
+
+  useEffect(() => {
+    if (!fullSummary) return;
+    setTypedSummary('');
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setTypedSummary(fullSummary.slice(0, i));
+      if (i >= fullSummary.length) clearInterval(id);
+    }, Math.floor(Math.random() * 20) + 18);
+    return () => clearInterval(id);
+  }, [fullSummary]);
+
+  const handleExplain = () => {
+    if (!chartsReady) {
+      alert('Please generate charts first.');
+      return;
+    }
+    if (!question.trim()) {
+      alert('Please enter a prompt about the charts.');
+      return;
+    }
+    const pick = HARD_CODED_SUMMARIES[Math.floor(Math.random() * HARD_CODED_SUMMARIES.length)] || HARDCODED_ANALYSIS_FALLBACK;
+    setFullSummary(pick);
+  };
+
+  return (
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <IconBarChart style={{ ...styles.icon, color: '#34D399' }} />
+        <h2 style={styles.cardTitle}>Talk to Your Data</h2>
+      </div>
+      <p style={styles.cardParagraph}>
+        Upload a CSV/Excel file, auto-generate random charts (demo), then ask a question to get a hardcoded summary typed out live.
+      </p>
+
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <label style={{ ...styles.button, backgroundColor: '#4B5563', flex: 1 }}>
+          <IconUpload style={styles.smallIcon} />
+          {fileName || 'Upload CSV / Excel'}
+          <input
+            type="file"
+            style={{ display: 'none' }}
+            accept=".csv,.xlsx,.xls"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
+          />
+        </label>
+        <button
+          onClick={handleGenerateCharts}
+          disabled={isLoading || !fileName}
+          style={{ ...styles.button, backgroundColor: '#10B981', opacity: isLoading || !fileName ? 0.5 : 1 }}
+        >
+          Generate Charts
+        </button>
+      </div>
+
+      {isLoading && (
+        <div style={styles.loadingContainer}>
+          <IconLoader style={styles.icon} />
+          <span>Preparing charts...</span>
+        </div>
+      )}
+
+      {chartsReady && (
+        <div style={{ ...styles.outputContainer }}>
+          <div style={styles.chartGrid}>
+            <div style={styles.chartCard}>
+              <div style={styles.chartTitle}>Category Performance (Bar)</div>
+              <BarChart data={barData} />
+            </div>
+            <div style={styles.chartCard}>
+              <div style={styles.chartTitle}>Trend Over Time (Line)</div>
+              <LineChart data={lineData} />
+            </div>
+            <div style={styles.chartCard}>
+              <div style={styles.chartTitle}>Share by Segment (Donut)</div>
+              <DonutChart data={pieData} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chartsReady && (
+        <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <IconHelpCircle
+              style={{ ...styles.icon, position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}
+            />
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Ask a question about these charts..."
+              style={{ ...styles.input, paddingLeft: 40 }}
+            />
+          </div>
+          <button onClick={handleExplain} style={{ ...styles.button, backgroundColor: '#059669' }}>
+            Explain
+          </button>
+        </div>
+      )}
+
+      {typedSummary && (
+        <div style={styles.outputContainer}>
+          <h3 style={styles.outputTitle}>Chart Summary:</h3>
+          <p style={styles.outputText}>{typedSummary}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** -----------------------
+ * MULTIMODAL INTERACTIONS (UPDATED)
+ * - Voice-to-Voice: record mic, then play 5s hardcoded voice (no text).
+ * - Voice+Text+Image: record mic, then play 5s hardcoded voice + typewriter text + image.
+ * - Video-to-Text: unchanged.
+ ------------------------*/
+function MultimodalCard() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
+  const [recordMode, setRecordMode] = useState<'voice' | 'vti' | null>(null);
+
+  const [typedText, setTypedText] = useState('');
+  const [fullText, setFullText] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [playCountdown, setPlayCountdown] = useState(0);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Typewriter effect for VTI
+  useEffect(() => {
+    if (!fullText) return;
+    setTypedText('');
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setTypedText(fullText.slice(0, i));
+      if (i >= fullText.length) clearInterval(id);
+    }, 18 + Math.floor(Math.random() * 18));
+    return () => clearInterval(id);
+  }, [fullText]);
+
+  // Countdown display while voice is "playing"
+  useEffect(() => {
+    if (!isPlayingVoice) return;
+    setPlayCountdown(5);
+    const id = setInterval(() => {
+      setPlayCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(id);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isPlayingVoice]);
+
+  // --- Helpers: play a 5s hardcoded TTS voice, then stop
+  const playFiveSecondVoice = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      // Fallback: just show a transient "playing" state
+      setIsPlayingVoice(true);
+      setTimeout(() => setIsPlayingVoice(false), 5000);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.volume = 1;
+    // Start speaking
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+    setIsPlayingVoice(true);
+    // Force stop at 5s
+    setTimeout(() => {
+      window.speechSynthesis.cancel();
+      setIsPlayingVoice(false);
+    }, 5000);
+  };
+
+  // --- Mic recording controls
+  const startRecording = async (mode: 'voice' | 'vti') => {
+    try {
+      setIsLoading(false);
+      setLoadingText('');
+      setRecordMode(mode);
+      setTypedText('');
+      setFullText('');
+      setImageUrl(null);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+
+      // We don't need the audio data in this demo—just capture briefly
+      recorder.ondataavailable = () => {};
+      recorder.onstop = () => {
+        // Clean up tracks
+        stream.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+
+        // After recording, "process" based on mode
+        if (mode === 'voice') {
+          // Voice-to-Voice: play hardcoded 5s voice, no text
+          playFiveSecondVoice('This is your hardcoded voice reply.');
+        } else if (mode === 'vti') {
+          // Voice+Text+Image: play 5s voice + typewriter + image
+          playFiveSecondVoice('Here is a combined hardcoded response with voice, text, and image.');
+          setFullText(
+            'Simulated multimodal result: your voice was received. Here is a hardcoded explanation streaming letter by letter.'
+          );
+          setImageUrl('https://images.pexels.com/photos/164186/pexels-photo-164186.jpeg');
+        }
+      };
+
+      recorder.start();
+    } catch (e) {
+      console.error(e);
+      alert('Microphone access was blocked or unavailable.');
+      stopRecording(false);
+    }
+  };
+
+  const stopRecording = (shouldStop = true) => {
+    if (!isRecording) return;
+    setIsRecording(false);
+    if (shouldStop && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    // If something failed, ensure tracks are closed
+    if (!shouldStop && mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+      mediaRecorderRef.current = null;
+    }
+  };
+
+  // --- Video-to-Text: UNCHANGED
+  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    setTypedText('');
+    setFullText('');
+    setImageUrl(null);
+    setRecordMode(null);
+
+    // Simulate processing delay
+    setLoadingText('Analyzing video file...');
+    setTimeout(() => {
+      setIsLoading(false);
+      setLoadingText('');
+      setFullText('');
+      setTypedText(`Video analysis for "${file.name}" is complete. The main subject is a golden retriever playing fetch in a park on a sunny day.`);
+      setImageUrl(null);
+    }, 2800);
+  };
+
+  return (
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <IconMic style={{ ...styles.icon, color: '#F97316' }} />
+        <h2 style={styles.cardTitle}>Multimodal Interactions</h2>
+      </div>
+      <p style={styles.cardParagraph}>
+        Record your voice and get demo outputs. Voice-to-Voice plays a 5s reply. Voice+Text+Image also shows text (typewriter) and an image.
+      </p>
+
+      <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+        {/* VOICE-TO-VOICE */}
+        {!isRecording || recordMode !== 'voice' ? (
+          <button
+            onClick={() => startRecording('voice')}
+            disabled={isLoading || isRecording}
+            style={{ ...styles.button, backgroundColor: '#9A3412', opacity: isLoading || isRecording ? 0.5 : 1, fontSize: '0.8rem' }}
+          >
+            Voice-to-Voice
+          </button>
+        ) : (
+          <button
+            onClick={() => stopRecording(true)}
+            style={{ ...styles.button, backgroundColor: '#DC2626', fontSize: '0.8rem' }}
+          >
+            Stop Recording
+          </button>
+        )}
+
+        {/* VOICE + TEXT + IMAGE */}
+        {!isRecording || recordMode !== 'vti' ? (
+          <button
+            onClick={() => startRecording('vti')}
+            disabled={isLoading || isRecording}
+            style={{ ...styles.button, backgroundColor: '#9A3412', opacity: isLoading || isRecording ? 0.5 : 1, fontSize: '0.8rem' }}
+          >
+            Voice+Text+Image
+          </button>
+        ) : (
+          <button
+            onClick={() => stopRecording(true)}
+            style={{ ...styles.button, backgroundColor: '#DC2626', fontSize: '0.8rem' }}
+          >
+            Stop Recording
+          </button>
+        )}
+
+        {/* VIDEO-TO-TEXT (UNCHANGED) */}
+        <button
+          onClick={() => videoInputRef.current?.click()}
+          disabled={isLoading || isRecording}
+          style={{ ...styles.button, backgroundColor: '#9A3412', opacity: isLoading || isRecording ? 0.5 : 1, fontSize: '0.8rem' }}
+        >
+          Video-to-Text
+        </button>
+        <input type="file" ref={videoInputRef} style={{ display: 'none' }} accept="video/*" onChange={handleVideoFileChange} />
+      </div>
+
+      {/* Recording state indicator */}
+      {isRecording && (
+        <div style={styles.loadingContainer}>
+          <div style={{ width: '12px', height: '12px', backgroundColor: '#4ADE80', borderRadius: '50%', animation: 'pulse 1.5s infinite ease-in-out' }} />
+          <span>Recording ({recordMode === 'voice' ? 'Voice-to-Voice' : 'Voice+Text+Image'})...</span>
+        </div>
+      )}
+
+      {/* Loading (only used for video flow) */}
+      {isLoading && (
+        <div style={styles.loadingContainer}>
+          <IconLoader style={styles.icon} />
+          <span>{loadingText}</span>
+        </div>
+      )}
+
+      {/* Voice playback indicator (5s) */}
+      {isPlayingVoice && (
+        <div style={styles.loadingContainer}>
+          <span>Playing voice response… {playCountdown}s</span>
+        </div>
+      )}
+
+      {/* Outputs (for VTI text+image and video text) */}
+      {(typedText || imageUrl) && (
+        <div style={styles.outputContainer}>
+          {(typedText || fullText) && <h3 style={styles.outputTitle}>Generated Output:</h3>}
+          {typedText && <p style={styles.outputText}>{typedText}</p>}
+          {imageUrl && (
+            <div style={{ marginTop: '12px' }}>
+              <img
+                src={imageUrl}
+                alt="Generated visual"
+                style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
+    </div>
+  );
+}
+
+// --- Main Slide Component ---
+const Slide20 = () => {
+  return (
+    <div style={styles.slideContainer}>
+      <SummarizerCard />
+      <ImageGeneratorCard />
+      <DataAnalysisCard />
+      <MultimodalCard />
     </div>
   );
 };

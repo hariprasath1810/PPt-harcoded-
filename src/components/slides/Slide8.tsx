@@ -1,213 +1,187 @@
-import React, { useRef, useLayoutEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Lightbulb } from "lucide-react";
-import {
-  slideContainer,
-  titleStyle,
-  subtitleStyle,
-  contentContainer,
-  fadeInUp,
-  staggerContainer,
-  colorThemes,
-  sectionTitleStyle,
-} from "../../styles/slideStyles";
+import { motion } from 'framer-motion';
+import { slideContainer, titleStyle } from '../../styles/slideStyles';
 
-type Box = { w: number; h: number };
+type Startup = {
+  name: string;
+  description: string;
+  logo: string;
+  delay: number;
+};
 
-export default function Slide4() {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState<Box>({ w: 1280, h: 720 });
+const Card = ({ logo, name, description, delay }: Startup) => (
+  <motion.div
+    initial={{ opacity: 0, y: 40 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay }}
+    whileHover={{
+      y: -10,
+      scale: 1.05,
+      boxShadow: '0 18px 36px rgba(0,0,0,0.15)',
+    }}
+    style={{
+      flex: '1 1 0',
+      maxWidth: 280,
+      borderRadius: 16,
+      background: '#fff',
+      boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      padding: 24,
+      textAlign: 'center',
+      border: '1px solid rgba(0,0,0,0.06)',
+      minHeight: 260,
+      margin: '0 auto',
+      transition: 'all 0.25s ease',
+    }}
+  >
+    {/* Logo with a gentle pop-in */}
+    <motion.img
+      src={logo}
+      alt={name}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.45, delay: delay + 0.1 }}
+      style={{
+        width: 110,
+        height: 110,
+        marginBottom: 16,
+        borderRadius: 16,
+        objectFit: 'contain',
+        background: '#ffffff',
+        padding: 10,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+      }}
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).src =
+          'https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f4bb.svg';
+      }}
+    />
+    <h3
+      style={{
+        margin: 0,
+        color: '#1f2937',
+        fontSize: '1.1rem',
+        fontWeight: 700,
+        letterSpacing: 0.2,
+      }}
+    >
+      {name}
+    </h3>
+    <p style={{ fontSize: '0.92rem', marginTop: 8, color: '#6b7280', lineHeight: 1.45 }}>
+      {description}
+    </p>
+  </motion.div>
+);
 
-  useLayoutEffect(() => {
-    const update = () => {
-      const r = rootRef.current?.getBoundingClientRect();
-      if (!r) return;
-      setBox({ w: r.width, h: r.height });
-    };
-    update();
-    window.addEventListener("resize", update);
-
-    const RO: typeof ResizeObserver | undefined = (window as any).ResizeObserver;
-    const ro = RO ? new RO(update) : undefined;
-    if (ro && rootRef.current) ro.observe(rootRef.current);
-
-    return () => {
-      window.removeEventListener("resize", update);
-      ro?.disconnect();
-    };
-  }, []);
-
-  const cards = [
+const WhatsNewDifferentAISlide = () => {
+  // "What's New & Different in AI" content
+  const startups: Startup[] = [
     {
-      title: "Generative Models",
-      desc: "AI that creates text, images, and video.",
-      theme: colorThemes.primary,
+      name: 'Generative Models',
+      description: 'AI that creates text, images, audio, and video.',
+      logo: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f3a8.svg', // 🎨
+      delay: 0.2,
     },
     {
-      title: "Accessibility",
-      desc: "AI tools available to businesses & individuals.",
-      theme: colorThemes.secondary,
+      name: 'Accessibility',
+      description: 'Powerful AI tools available to businesses & individuals.',
+      logo: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f310.svg', // 🌐
+      delay: 0.3,
     },
     {
-      title: "Multimodality",
-      desc: "Combining text, images, audio for better results.",
-      theme: colorThemes.accent,
+      name: 'Multimodality',
+      description: 'Combining text, images, and audio for better results.',
+      logo: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f3a4.svg', // 🎤
+      delay: 0.4,
     },
     {
-      title: "Scale",
-      desc: "AI applied across industries at global scale.",
-      theme: colorThemes.primary,
+      name: 'Scale',
+      description: 'Applied across industries at global scale.',
+      logo: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f680.svg', // 🚀
+      delay: 0.5,
     },
   ];
 
-  // 2×2 grid with larger gaps
-  const twoByTwoGrid: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "40px", // bigger gap
-    width: "100%",
-    maxWidth: "1100px",
-    margin: "40px auto 0 auto", // margin before grid
-  };
-
   return (
-    <div ref={rootRef} style={slideContainer as React.CSSProperties}>
-      <motion.div
-        style={contentContainer as React.CSSProperties}
-        initial="hidden"
-        animate="show"
-        variants={staggerContainer}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8 }}
+      style={{
+        ...slideContainer,
+        backgroundColor: '#f8f9fa',
+        padding: '40px 48px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 40,
+      }}
+    >
+      {/* Title */}
+      <motion.h2
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        style={{
+          ...titleStyle,
+          fontSize: '2.8rem',
+          color: '#111827',
+          marginBottom: 10,
+          textAlign: 'center',
+        }}
       >
-        {/* Page Title */}
-        <motion.h2
-          variants={fadeInUp}
-          style={{
-            ...titleStyle,
-            fontSize: "3.5rem",
-            marginBottom: 12,
-            color: "#1e293b",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            justifyContent: "center",
-            textShadow: "none",
-          }}
-        >
-          <Lightbulb size={44} color="#0891b2" />
-          What’s New and Different in AI?
-        </motion.h2>
+        What’s New and Different in AI?
+      </motion.h2>
 
-        <motion.p
-          variants={fadeInUp}
-          style={{
-            ...subtitleStyle,
-            fontSize: "1.4rem",
-            margin: "0 0 30px 0",
-            color: "#334155",
-            textAlign: "center",
-          }}
-        >
-          AI today is far more adaptive, creative, and accessible than ever before.
-        </motion.p>
-
-        {/* Section Heading for Cards */}
-        <motion.h3
-          variants={fadeInUp}
-          style={{
-            ...sectionTitleStyle,
-            fontSize: "2.2rem",
-            marginBottom: "10px",
-            color: "#0f172a",
-          }}
-        >
-          Key Areas of Change
-        </motion.h3>
-
-        {/* 2×2 Card Grid */}
-        <motion.div
-          style={twoByTwoGrid}
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: { staggerChildren: 0.12, delayChildren: 0.15 },
-            },
-          }}
-        >
-          {cards.map((c) => (
-            <motion.div
-              key={c.title}
-              variants={{ hidden: { y: 24, opacity: 0 }, show: { y: 0, opacity: 1 } }}
-              whileHover={{ y: -6, scale: 1.01 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              style={{
-                position: "relative",
-                borderRadius: 16,
-                padding: 2,
-                background: c.theme.background,
-                boxShadow: "0 8px 26px rgba(0,0,0,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: 14,
-                  height: "100%",
-                  padding: 24,
-                }}
-              >
-                {/* Title Tag */}
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "8px 14px",
-                    borderRadius: 12,
-                    color: c.theme.color,
-                    background: c.theme.background,
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    letterSpacing: 0.2,
-                    boxShadow: "0 6px 16px rgba(0,0,0,0.10)",
-                  }}
-                >
-                  {c.title}
-                </div>
-
-                <p
-                  style={{
-                    marginTop: 14,
-                    fontSize: "1.15rem",
-                    lineHeight: 1.6,
-                    color: "#1f2937",
-                    textAlign: "left",
-                  }}
-                >
-                  {c.desc}
-                </p>
-
-                {/* Glow */}
-                <div
-                  style={{
-                    position: "absolute",
-                    right: -18,
-                    bottom: -18,
-                    width: 96,
-                    height: 96,
-                    borderRadius: "50%",
-                    filter: "blur(30px)",
-                    opacity: 0.35,
-                    background: c.theme.background,
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+      {/* Row 1 – first 3 */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.15 } },
+        }}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 40,
+          flexWrap: 'wrap',
+          width: '100%',
+          maxWidth: 1000,
+        }}
+      >
+        {startups.slice(0, 3).map((s) => (
+          <Card key={s.name} {...s} />
+        ))}
       </motion.div>
-    </div>
+
+      {/* Row 2 – remaining */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.15 } },
+        }}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 40,
+          flexWrap: 'wrap',
+          width: '100%',
+          maxWidth: 700,
+          marginTop: 10,
+        }}
+      >
+        {startups.slice(3).map((s) => (
+          <Card key={s.name} {...s} />
+        ))}
+      </motion.div>
+    </motion.div>
   );
-}
+};
+
+export default WhatsNewDifferentAISlide;
