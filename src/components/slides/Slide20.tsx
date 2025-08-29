@@ -26,6 +26,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+    overflow: 'auto', // Add scroll for overflowing content
   },
   cardHeader: {
     display: 'flex',
