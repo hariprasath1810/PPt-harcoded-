@@ -74,64 +74,35 @@ const initialNodes: Node[] = [
   { id: '27', type: 'slideNode', position: { x: 3600, y: 9600 }, width: 1600, height: 900, data: { component: <Slide27 /> } },
 ];
 
-const initialEdges: Edge[] = [
-    { id: 'e1-2', source: '1', target: '2', animated: true },
-    { id: 'e2-3', source: '2', target: '3', animated: true },
-    { id: 'e3-4', source: '3', target: '4', animated: true },
-    { id: 'e4-5', source: '4', target: '5', animated: true },
-    { id: 'e5-6', source: '5', target: '6', animated: true },
-    { id: 'e6-7', source: '6', target: '7', animated: true },
-    { id: 'e7-8', source: '7', target: '8', animated: true },
-    { id: 'e8-9', source: '8', target: '9', animated: true },
-    { id: 'e9-10', source: '9', target: '10', animated: true },
-    { id: 'e10-11', source: '10', target: '11', animated: true },
-    { id: 'e11-12', source: '11', target: '12', animated: true },
-    { id: 'e12-13', source: '12', target: '13', animated: true },
-    { id: 'e13-14', source: '13', target: '14', animated: true },
-    { id: 'e14-15', source: '14', target: '15', animated: true },
-    { id: 'e15-16', source: '15', target: '16', animated: true },
-    { id: 'e16-17', source: '16', target: '17', animated: true },
-    { id: 'e17-18', source: '17', target: '18', animated: true },
-    { id: 'e18-19', source: '18', target: '19', animated: true },
-    { id: 'e19-20', source: '19', target: '20', animated: true },
-    { id: 'e20-21', source: '20', target: '21', animated: true },
-    { id: 'e21-22', source: '21', target: '22', animated: true },
-    { id: 'e22-23', source: '22', target: '23', animated: true },
-    { id: 'e23-24', source: '23', target: '24', animated: true },
-    { id: 'e24-25', source: '24', target: '25', animated: true },
-    { id: 'e25-26', source: '25', target: '26', animated: true },
-    { id: 'e26-27', source: '26', target: '27', animated: true },
-];
-
 // Define non-linear navigation relationships
 const childrenMap: Record<string, string[]> = {
-    // Core branch focused on early narrative
-    '1': ['2', '4'],           // Intro -> What is AI? or Types of AI
-    '5': ['11', '16'],         // From Neural Networks -> LLMs or AI Agents
-
-    // Keep light continuity for later slides (can be refined later)
-    '6': ['7'],
-    '7': ['8'],
-    '8': ['9'],
-    '9': ['10'],
-    '10': ['11'],
-    '11': ['12'],
-    '12': ['13'],
-    '13': ['14'],
-    '14': ['15'],
-    '15': ['16'],
-    '16': ['17'],
-    '17': ['18'],
-    '18': ['19'],
-    '19': ['20'],
-    '20': ['21'],
-    '21': ['22'],
-    '22': ['23'],
-    '23': ['24'],
-    '24': ['25'],
-    '25': ['26'],
-    '26': ['27'],
-    '27': ['28'],
+  '1': ['2', '12', '21'], // Intro -> What is AI?, Generative AI, Agentic AI
+  '2': ['3', '4', '6', '9'], // What is AI? -> History, Human vs GPT, Who uses AI?, AI Capabilities
+  '3': ['8'], // History -> What's New
+  '4': ['7'], // Human vs GPT -> Human + AI Collaboration
+  '5': ['11', '16'], // From Neural Networks -> LLMs or AI Agents
+  '6': ['7', '10'], // Who uses AI? -> Human + AI Collaboration, AI in Enterprise
+  '7': [],
+  '8': [],
+  '9': ['20'], // AI Capabilities -> Demos
+  '10': ['11', '19'], // AI in Enterprise -> Levels of Autonomy, Use Cases
+  '11': [],
+  '12': ['13', '15'], // Generative AI -> In Action, Model Types
+  '13': ['14', '16', '17', '18', '19'], // In Action -> How it works, Code Gen, Video Gen, Indian Ecosystem, Use Cases
+  '14': [],
+  '15': ['16', '17'], // Model Types -> Code Gen, Video Gen
+  '16': [],
+  '17': [],
+  '18': [],
+  '19': ['20'], // Use Cases -> Demos
+  '20': [],
+  '21': ['22', '25'], // Agentic AI -> Workflow, Patterns
+  '22': ['23'], // Workflow -> Single Agent
+  '23': ['24'], // Single Agent -> Multi-Agent
+  '24': [],
+  '25': [],
+  '26': ['27'],
+  '27': [],
 };
 
 const parentMap: Record<string, string | undefined> = Object.keys(childrenMap).reduce((acc, key) => {
@@ -141,13 +112,15 @@ const parentMap: Record<string, string | undefined> = Object.keys(childrenMap).r
     return acc;
 }, {} as Record<string, string | undefined>);
 
+const initialEdges: Edge[] = Object.entries(childrenMap).flatMap(([source, targets]) =>
+    targets.map(target => ({ id: `e${source}-${target}`, source, target, animated: true }))
+);
+
 // Buttons removed; using keyboard navigation only
 
 const Presentation = () => {
     const { fitView } = useReactFlow();
     const currentSlide = useStore((state) => state.currentSlide);
-    const next = useStore((state) => state.actions.next);
-    const prev = useStore((state) => state.actions.prev);
     const goTo = useStore((state) => state.actions.goTo);
 
     useEffect(() => {
@@ -162,11 +135,7 @@ const Presentation = () => {
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowRight') {
-                next();
-            } else if (e.key === 'ArrowLeft') {
-                prev();
-            } else if (e.key === 'ArrowDown') {
+            if (e.key === 'ArrowDown') {
                 const children = childrenMap[currentSlide] || [];
                 if (children[0]) {
                     goTo(children[0]);
@@ -180,7 +149,7 @@ const Presentation = () => {
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [currentSlide, next, prev, goTo]);
+    }, [currentSlide, goTo]);
 
   return (
     <div style={{ 
