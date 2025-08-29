@@ -2,619 +2,248 @@
 
 import React, { useState, useRef } from 'react';
 
-// --- Helper: Icon Components (to replace lucide-react for a self-contained file) ---
-// Using inline SVGs to avoid external dependencies.
+// --- Style Definitions ---
+const styles: { [key: string]: React.CSSProperties } = {
+  slideContainer: {
+    width: '100%',
+    height: '100%',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateRows: 'repeat(2, 1fr)',
+    gap: '20px',
+    padding: '20px',
+    boxSizing: 'border-box',
+    backgroundColor: '#030712', // A dark, neutral background
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  card: {
+    backgroundColor: 'rgba(31, 41, 55, 0.5)', // bg-gray-800 with opacity
+    padding: '24px',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(8px)',
+    color: '#E5E7EB',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  cardTitle: {
+    fontSize: '1.1rem',
+    fontWeight: '600',
+    color: 'white',
+  },
+  cardParagraph: {
+    color: '#9CA3AF',
+    marginBottom: '24px',
+    fontSize: '0.9rem',
+    lineHeight: 1.6,
+  },
+  button: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontWeight: '600',
+    color: 'white',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s, opacity 0.2s',
+    border: 'none',
+    outline: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+  },
+  input: {
+    flexGrow: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    border: '1px solid #4B5563',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    color: 'white',
+    fontSize: '0.9rem',
+  },
+  icon: {
+    width: '24px',
+    height: '24px',
+  },
+  smallIcon: {
+    width: '16px',
+    height: '16px',
+  },
+  loadingContainer: {
+    marginTop: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    color: '#D1D5DB',
+  },
+  outputContainer: {
+    marginTop: '24px',
+    padding: '16px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: '8px',
+  },
+  outputTitle: {
+    fontWeight: 'bold',
+    fontSize: '1rem',
+    marginBottom: '8px',
+    color: '#F3F4F6',
+  },
+  outputText: {
+    color: '#D1D5DB',
+    lineHeight: 1.6,
+    fontSize: '0.9rem',
+  },
+};
 
-const IconLoader = ({ className = 'w-5 h-5' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
+// --- Helper: Icon Components ---
+const IconLoader = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...style, animation: 'spin 1s linear infinite'}}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>);
+const IconUpload = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>);
+const IconFileText = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>);
+const IconImage = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>);
+const IconSparkles = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M12 3L9.5 8.5 4 10l5.5 5.5L8 21l4-3 4 3-1.5-5.5L22 10l-5.5-1.5z" /></svg>);
+const IconBarChart = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg>);
+const IconHelpCircle = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>);
+const IconMic = ({ style }: { style?: React.CSSProperties }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>);
 
-const IconUpload = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="17 8 12 3 7 8" />
-    <line x1="12" y1="3" x2="12" y2="15" />
-  </svg>
-);
+// --- Card Components ---
 
-const IconFileText = ({ className = 'w-6 h-6' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <polyline points="10 9 9 9 8 9" />
-  </svg>
-);
-
-const IconImage = ({ className = 'w-6 h-6' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
-  </svg>
-);
-
-const IconSparkles = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M12 3L9.5 8.5 4 10l5.5 5.5L8 21l4-3 4 3-1.5-5.5L22 10l-5.5-1.5z" />
-  </svg>
-);
-
-const IconBarChart = ({ className = 'w-6 h-6' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <line x1="12" y1="20" x2="12" y2="10" />
-    <line x1="18" y1="20" x2="18" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="16" />
-  </svg>
-);
-
-const IconHelpCircle = ({ className = 'w-5 h-5' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
-
-const IconMic = ({ className = 'w-6 h-6' }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-    <line x1="12" y1="19" x2="12" y2="23" />
-    <line x1="8" y1="23" x2="16" y2="23" />
-  </svg>
-);
-
-// --- Component: SummarizerCard ---
-const HARDCODED_SUMMARY =
-  'The document outlines a strategic initiative to leverage AI across various business units. Key focus areas include predictive analytics for market trends, natural language processing for customer support automation, and computer vision for quality control in manufacturing. The projected ROI is an 18% increase in operational efficiency within the first two years.';
-
+const HARDCODED_SUMMARY = 'The document outlines a strategic initiative to leverage AI across various business units. Key focus areas include predictive analytics for market trends, natural language processing for customer support automation, and computer vision for quality control in manufacturing. The projected ROI is an 18% increase in operational efficiency within the first two years.';
 function SummarizerCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState('');
   const [fileName, setFileName] = useState('');
-
   const handleSummarize = async () => {
-    if (!fileName) {
-      alert('Please upload a dummy PDF first.');
-      return;
-    }
-    setIsLoading(true);
-    setSummary('');
-
-    // Simulate a 2-second processing delay
+    if (!fileName) { alert('Please upload a dummy PDF first.'); return; }
+    setIsLoading(true); setSummary('');
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setSummary(HARDCODED_SUMMARY);
-    setIsLoading(false);
+    setSummary(HARDCODED_SUMMARY); setIsLoading(false);
   };
-
   return (
-    <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <IconFileText className="w-6 h-6 text-blue-400" />
-        <h2 className="text-xl font-semibold text-white">
-          Document Summarization
-        </h2>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}><IconFileText style={{...styles.icon, color: '#60A5FA'}} /><h2 style={styles.cardTitle}>Document Summarization</h2></div>
+      <p style={styles.cardParagraph}>Upload any PDF. The system will process it and show a pre-defined summary.</p>
+      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+        <label style={{...styles.button, flexGrow: 1, backgroundColor: '#4B5563'}}><IconUpload style={styles.smallIcon} />{fileName || 'Upload Dummy PDF'}<input type="file" style={{display: 'none'}} accept=".pdf" onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} /></label>
+        <button onClick={handleSummarize} disabled={isLoading || !fileName} style={{...styles.button, backgroundColor: '#2563EB', opacity: (isLoading || !fileName) ? 0.5 : 1 }}>Summarize</button>
       </div>
-      <p className="text-gray-400 mb-6">
-        Upload any PDF. The system will process it and show a pre-defined
-        summary.
-      </p>
-
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <label className="w-full sm:w-auto flex-1 cursor-pointer bg-gray-700 hover:bg-gray-600 transition-colors text-white font-bold py-2 px-4 rounded-md text-center">
-          <IconUpload className="w-4 h-4 inline-block mr-2" />
-          {fileName || 'Upload Dummy PDF'}
-          <input
-            type="file"
-            className="hidden"
-            accept=".pdf"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
-          />
-        </label>
-        <button
-          onClick={handleSummarize}
-          disabled={isLoading || !fileName}
-          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 transition-colors text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500 disabled:cursor-not-allowed"
-        >
-          Summarize
-        </button>
-      </div>
-
-      {isLoading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-gray-300">
-          <IconLoader className="w-5 h-5 animate-spin" />
-          <span>Processing document...</span>
-        </div>
-      )}
-
-      {summary && (
-        <div className="mt-6 p-4 bg-black/30 rounded-lg animate-fade-in">
-          <h3 className="font-bold text-lg mb-2 text-gray-100">
-            Generated Summary:
-          </h3>
-          <p className="text-gray-300 leading-relaxed">{summary}</p>
-        </div>
-      )}
+      {isLoading && (<div style={styles.loadingContainer}><IconLoader style={styles.icon} /><span>Processing document...</span></div>)}
+      {summary && (<div style={styles.outputContainer}><h3 style={styles.outputTitle}>Generated Summary:</h3><p style={styles.outputText}>{summary}</p></div>)}
     </div>
   );
 }
 
-// --- Component: ImageGeneratorCard ---
-const HARDCODED_IMAGES = [
-    { model: 'Midjourney', src: 'https://images.pexels.com/photos/45201/pexels-photo-45201.jpeg?auto=compress&cs=tinysrgb&h=350' },
-    { model: 'Stable Diffusion', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' },
-    { model: 'DALL·E 3', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' },
-    { model: 'Imagen', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' },
-];
-
+const HARDCODED_IMAGES = [{ model: 'Midjourney', src: 'https://images.pexels.com/photos/45201/pexels-photo-45201.jpeg?auto=compress&cs=tinysrgb&h=350' }, { model: 'Stable Diffusion', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' }, { model: 'DALL·E 3', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' }, { model: 'Imagen', src: 'https://images.pexels.com/photos/104827/pexels-photo-104827.jpeg?auto=compress&cs=tinysrgb&h=350' }];
 function ImageGeneratorCard() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showImages, setShowImages] = useState(false);
-
   const handleGenerate = async () => {
-    if (!prompt) {
-      alert('Please enter a prompt.');
-      return;
-    }
-    setIsLoading(true);
-    setShowImages(false);
-
-    // Simulate a 3-second generation delay
+    if (!prompt) { alert('Please enter a prompt.'); return; }
+    setIsLoading(true); setShowImages(false);
     await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    setShowImages(true);
-    setIsLoading(false);
+    setShowImages(true); setIsLoading(false);
   };
-
   return (
-    <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <IconImage className="w-6 h-6 text-purple-400" />
-        <h2 className="text-xl font-semibold text-white">Image Generation</h2>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}><IconImage style={{...styles.icon, color: '#A78BFA'}} /><h2 style={styles.cardTitle}>Image Generation</h2></div>
+      <p style={styles.cardParagraph}>Enter any prompt to see a showcase of pre-generated images from different models.</p>
+      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+        <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g., A cat in a spaceship" style={styles.input} />
+        <button onClick={handleGenerate} disabled={isLoading || !prompt} style={{...styles.button, backgroundColor: '#7C3AED', opacity: (isLoading || !prompt) ? 0.5 : 1 }}><IconSparkles style={styles.smallIcon}/>Generate</button>
       </div>
-      <p className="text-gray-400 mb-6">
-        Enter any prompt to see a showcase of pre-generated images from
-        different models.
-      </p>
-
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., A cat in a spaceship"
-          className="flex-1 w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={isLoading || !prompt}
-          className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 transition-colors text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500 disabled:cursor-not-allowed"
-        >
-          <IconSparkles className="w-4 h-4 inline-block mr-1" />
-          Generate
-        </button>
-      </div>
-
-      {isLoading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-gray-300">
-          <IconLoader className="w-5 h-5 animate-spin" />
-          <span>Generating images...</span>
-        </div>
-      )}
-
-      {showImages && (
-        <div className="mt-6 grid grid-cols-2 gap-4 animate-fade-in">
-          {HARDCODED_IMAGES.map((img) => (
-            <div
-              key={img.model}
-              className="relative group overflow-hidden rounded-lg aspect-video" // Added aspect-video for consistent size
-            >
-              <img
-                src={img.src}
-                alt={img.model}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute bottom-0 left-0 bg-black/60 text-white text-sm px-2 py-1 rounded-tr-lg rounded-bl-lg">
-                {img.model}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {isLoading && (<div style={styles.loadingContainer}><IconLoader style={styles.icon} /><span>Generating images...</span></div>)}
+      {showImages && (<div style={{...styles.outputContainer, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>{HARDCODED_IMAGES.map(img => (<div key={img.model} style={{position: 'relative'}}><img src={img.src} alt={img.model} style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px'}} /><div style={{position: 'absolute', bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.75rem', padding: '2px 6px', margin: '4px', borderRadius: '4px'}}>{img.model}</div></div>))}</div>)}
     </div>
   );
 }
 
-// --- Component: DataAnalysisCard ---
-const HARDCODED_ANALYSIS =
-  'Based on the provided data, the analysis indicates a strong positive correlation between marketing spend and quarterly revenue (R² = 0.87). The peak sales period is identified as Q4, consistently outperforming other quarters by an average of 32%. Recommendation: Increase marketing allocation in late Q3 to maximize Q4 performance.';
-
+const HARDCODED_ANALYSIS = 'Based on the provided data, the analysis indicates a strong positive correlation between marketing spend and quarterly revenue (R² = 0.87). The peak sales period is identified as Q4, consistently outperforming other quarters by an average of 32%. Recommendation: Increase marketing allocation in late Q3 to maximize Q4 performance.';
 function DataAnalysisCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState('');
   const [fileName, setFileName] = useState('');
   const [question, setQuestion] = useState('');
-
   const handleAnalyze = async () => {
-    if (!fileName || !question) {
-      alert('Please upload a CSV and enter a question.');
-      return;
-    }
-    setIsLoading(true);
-    setAnalysis('');
-
-    // Simulate a 2.5-second analysis delay
+    if (!fileName || !question) { alert('Please upload a CSV and enter a question.'); return; }
+    setIsLoading(true); setAnalysis('');
     await new Promise((resolve) => setTimeout(resolve, 2500));
-
-    setAnalysis(HARDCODED_ANALYSIS);
-    setIsLoading(false);
+    setAnalysis(HARDCODED_ANALYSIS); setIsLoading(false);
   };
-
   return (
-    <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <IconBarChart className="w-6 h-6 text-green-400" />
-        <h2 className="text-xl font-semibold text-white">Talk to Your Data</h2>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}><IconBarChart style={{...styles.icon, color: '#34D399'}} /><h2 style={styles.cardTitle}>Talk to Your Data</h2></div>
+      <p style={styles.cardParagraph}>Upload a dummy CSV and ask any question to get a pre-defined insight.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' }}>
+        <label style={{...styles.button, backgroundColor: '#4B5563'}}><IconUpload style={styles.smallIcon} />{fileName || 'Upload Dummy CSV'}<input type="file" style={{display: 'none'}} accept=".csv" onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} /></label>
+        <div style={{position: 'relative', display: 'flex'}}><IconHelpCircle style={{...styles.icon, position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF'}} /><input type="text" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask any question about the data..." style={{...styles.input, paddingLeft: '40px'}} /></div>
+        <button onClick={handleAnalyze} disabled={isLoading || !fileName || !question} style={{...styles.button, backgroundColor: '#059669', opacity: (isLoading || !fileName || !question) ? 0.5 : 1 }}>Get Insight</button>
       </div>
-      <p className="text-gray-400 mb-6">
-        Upload a dummy CSV and ask any question to get a pre-defined insight.
-      </p>
-
-      <div className="space-y-4">
-        <label className="w-full flex cursor-pointer bg-gray-700 hover:bg-gray-600 transition-colors text-white font-bold py-2 px-4 rounded-md text-center">
-          <IconUpload className="w-4 h-4 inline-block mr-2" />
-          {fileName || 'Upload Dummy CSV'}
-          <input
-            type="file"
-            className="hidden"
-            accept=".csv"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
-          />
-        </label>
-        <div className="relative">
-          <IconHelpCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask any question about the data..."
-            className="w-full bg-gray-800 border border-gray-600 rounded-md pl-10 pr-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow"
-          />
-        </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={isLoading || !fileName || !question}
-          className="w-full bg-green-600 hover:bg-green-700 transition-colors text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500 disabled:cursor-not-allowed"
-        >
-          Get Insight
-        </button>
-      </div>
-
-      {isLoading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-gray-300">
-          <IconLoader className="w-5 h-5 animate-spin" />
-          <span>Analyzing data...</span>
-        </div>
-      )}
-
-      {analysis && (
-        <div className="mt-6 p-4 bg-black/30 rounded-lg animate-fade-in">
-          <h3 className="font-bold text-lg mb-2 text-gray-100">
-            Generated Insight:
-          </h3>
-          <p className="text-gray-300 leading-relaxed">{analysis}</p>
-        </div>
-      )}
+      {isLoading && (<div style={styles.loadingContainer}><IconLoader style={styles.icon} /><span>Analyzing data...</span></div>)}
+      {analysis && (<div style={styles.outputContainer}><h3 style={styles.outputTitle}>Generated Insight:</h3><p style={styles.outputText}>{analysis}</p></div>)}
     </div>
   );
 }
 
-// --- Component: MultimodalCard ---
 function MultimodalCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [loadingText, setLoadingText] = useState('');
-  const [output, setOutput] = useState<{
-    type: 'audio' | 'text' | null;
-    content: string;
-  }>({ type: null, content: '' });
+  const [output, setOutput] = useState<{ type: 'audio' | 'text' | null; content: string; }>({ type: null, content: '' });
   const videoInputRef = useRef<HTMLInputElement>(null);
-
-  const handleInteraction = async (
-    type: 'voice' | 'vti' | 'video',
-    videoFileName?: string
-  ) => {
-    setIsLoading(true);
-    setOutput({ type: null, content: '' });
-
+  const handleInteraction = async (type: 'voice' | 'vti' | 'video', videoFileName?: string) => {
+    setIsLoading(true); setOutput({ type: null, content: '' });
     if (type === 'voice') setLoadingText('Analyzing voice input...');
     else if (type === 'vti') setLoadingText('Processing combined inputs...');
     else if (type === 'video') setLoadingText('Analyzing video file...');
-
     await new Promise((resolve) => setTimeout(resolve, 2800));
-
-    if (type === 'voice') {
-      setOutput({
-        type: 'audio',
-        content:
-          'This is a simulated audio response generated from your voice input.',
-      });
-    } else if (type === 'vti') {
-      setOutput({
-        type: 'text',
-        content:
-          'Simulated analysis from voice, text, and image: The image shows a sunset over a mountain range. The text asks to describe it poetically. Here is the result: "Crimson hues bleed across the sky, as ancient peaks slumber under a blanket of twilight."',
-      });
-    } else {
-      setOutput({
-        type: 'text',
-        content: `Video analysis for "${videoFileName}" is complete. The main subject is a golden retriever playing fetch in a park on a sunny day.`,
-      });
-    }
-
-    setIsLoading(false);
-    setLoadingText('');
+    if (type === 'voice') setOutput({ type: 'audio', content: 'This is a simulated audio response generated from your voice input.' });
+    else if (type === 'vti') setOutput({ type: 'text', content: 'Simulated analysis from voice, text, and image: The image shows a sunset over a mountain range. The text asks to describe it poetically. Here is the result: "Crimson hues bleed across the sky, as ancient peaks slumber under a blanket of twilight."' });
+    else setOutput({ type: 'text', content: `Video analysis for "${videoFileName}" is complete. The main subject is a golden retriever playing fetch in a park on a sunny day.`});
+    setIsLoading(false); setLoadingText('');
   };
-
-  const handleVoiceButtonClick = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      handleInteraction('voice');
-    } else {
-      setIsRecording(true);
-      setOutput({ type: null, content: '' });
-      setIsLoading(false);
-    }
-  };
-
-  const handleVideoUploadClick = () => {
-    videoInputRef.current?.click();
-  };
-
-  const handleVideoFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleInteraction('video', file.name);
-    }
-  };
-
+  const handleVoiceButtonClick = () => { if (isRecording) { setIsRecording(false); handleInteraction('voice'); } else { setIsRecording(true); setOutput({ type: null, content: '' }); setIsLoading(false); }};
+  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) { handleInteraction('video', file.name); }};
   return (
-    <div className="bg-white/5 p-6 rounded-2xl shadow-lg border border-white/10 backdrop-blur-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <IconMic className="w-6 h-6 text-orange-400" />
-        <h2 className="text-xl font-semibold text-white">
-          Multimodal Interactions
-        </h2>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}><IconMic style={{...styles.icon, color: '#F97316'}} /><h2 style={styles.cardTitle}>Multimodal Interactions</h2></div>
+      <p style={styles.cardParagraph}>Simulate complex AI interactions. Outputs are hardcoded.</p>
+      <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+        <button onClick={handleVoiceButtonClick} disabled={isLoading} style={{...styles.button, backgroundColor: isRecording ? '#DC2626' : '#9A3412', opacity: isLoading ? 0.5 : 1, fontSize: '0.8rem'}}>{isRecording ? 'Stop Recording' : 'Voice-to-Voice'}</button>
+        <button onClick={() => handleInteraction('vti')} disabled={isLoading || isRecording} style={{...styles.button, backgroundColor: '#9A3412', opacity: (isLoading || isRecording) ? 0.5 : 1, fontSize: '0.8rem'}}>Voice+Text+Image</button>
+        <button onClick={() => videoInputRef.current?.click()} disabled={isLoading || isRecording} style={{...styles.button, backgroundColor: '#9A3412', opacity: (isLoading || isRecording) ? 0.5 : 1, fontSize: '0.8rem'}}>Video-to-Text</button>
+        <input type="file" ref={videoInputRef} style={{display: 'none'}} accept="video/*" onChange={handleVideoFileChange} />
       </div>
-      <p className="text-gray-400 mb-6">
-        Simulate complex AI interactions. Outputs are hardcoded.
-      </p>
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
-            onClick={handleVoiceButtonClick}
-            disabled={isLoading}
-            className={`transition-colors text-white font-semibold py-2 px-3 rounded-md text-sm disabled:bg-gray-500 ${
-              isRecording
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-orange-600/80 hover:bg-orange-600'
-            }`}
-          >
-            {isRecording ? 'Stop Recording' : 'Voice-to-Voice'}
-          </button>
-          <button
-            onClick={() => handleInteraction('vti')}
-            disabled={isLoading || isRecording}
-            className="bg-orange-600/80 hover:bg-orange-600 transition-colors text-white font-semibold py-2 px-3 rounded-md disabled:bg-gray-500 text-sm"
-          >
-            Voice+Text+Image
-          </button>
-          <button
-            onClick={handleVideoUploadClick}
-            disabled={isLoading || isRecording}
-            className="bg-orange-600/80 hover:bg-orange-600 transition-colors text-white font-semibold py-2 px-3 rounded-md disabled:bg-gray-500 text-sm"
-          >
-            Video-to-Text
-          </button>
-        </div>
-
-        {/* Hidden file input for video */}
-        <input
-          type="file"
-          ref={videoInputRef}
-          className="hidden"
-          accept="video/*"
-          onChange={handleVideoFileChange}
-        />
-      </div>
-
-      {isRecording && !isLoading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-green-400">
-          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-          <span>Recording...</span>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-gray-300">
-          <IconLoader className="w-5 h-5 animate-spin" />
-          <span>{loadingText}</span>
-        </div>
-      )}
-
-      {output.type && (
-        <div className="mt-6 p-4 bg-black/30 rounded-lg animate-fade-in">
-          <h3 className="font-bold text-lg mb-2 text-gray-100">
-            Generated Output:
-          </h3>
-          {output.type === 'audio' && (
-            <div className="flex items-center gap-3">
-              <p className="text-gray-300 italic">"{output.content}"</p>
-              <div className="text-gray-400 text-sm">
-                (Simulated Audio Player)
-              </div>
-            </div>
-          )}
-          {output.type === 'text' && (
-            <p className="text-gray-300 leading-relaxed">{output.content}</p>
-          )}
-        </div>
-      )}
+      {isRecording && !isLoading && (<div style={styles.loadingContainer}><div style={{width: '12px', height: '12px', backgroundColor: '#4ADE80', borderRadius: '50%', animation: 'pulse 1.5s infinite ease-in-out'}}></div><span>Recording...</span></div>)}
+      {isLoading && (<div style={styles.loadingContainer}><IconLoader style={styles.icon} /><span>{loadingText}</span></div>)}
+      {output.type && (<div style={styles.outputContainer}>
+        <h3 style={styles.outputTitle}>Generated Output:</h3>
+        {output.type === 'audio' ? <p style={styles.outputText}>"{output.content}" (Simulated Audio)</p> : <p style={styles.outputText}>{output.content}</p>}
+      </div>)}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
     </div>
   );
 }
 
-// --- Main App Component ---
-export default function App() {
+// --- Main Slide Component ---
+const Slide20 = () => {
   return (
-    <main className="min-h-screen w-full bg-gray-900 text-white p-4 sm:p-8">
-      {/* Background Gradient Blobs */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full filter blur-3xl animate-blob"></div>
-        <div className="absolute top-[10%] right-[5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-[-10%] left-[25%] w-[400px] h-[400px] bg-green-600/20 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
-      </div>
-
-      <div className="text-center mb-12">
-        <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-          AI Features Prototype
-        </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          An interactive showcase of AI capabilities. All outputs are hardcoded
-          to simulate a real, functional frontend.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-        <SummarizerCard />
-        <ImageGeneratorCard />
-        <DataAnalysisCard />
-        <MultimodalCard />
-      </div>
-
-      <style jsx global>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
-        }
-        @keyframes blob {
-          0% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-          100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
-    </main>
+    <div style={styles.slideContainer}>
+      <SummarizerCard />
+      <ImageGeneratorCard />
+      <DataAnalysisCard />
+      <MultimodalCard />
+    </div>
   );
-}
+};
+
+export default Slide20;
